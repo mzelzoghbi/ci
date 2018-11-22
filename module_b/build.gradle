@@ -1,5 +1,7 @@
 apply plugin: 'com.android.library'
 apply from: '../quality.gradle'
+apply plugin: 'com.palantir.jacoco-coverage'
+apply plugin: 'com.palantir.jacoco-full-report'
 
 android {
     compileSdkVersion 28
