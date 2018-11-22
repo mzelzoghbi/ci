@@ -1,0 +1,74 @@
+# Java Gradle CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: circleci/android:api-27-alpha
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/android
+
+    environment:
+      # Customize the JVM maximum heap limit
+      # JVM_OPTS: -Xmx3200m
+      _JAVA_OPTIONS: "-Xms1024m -Xmx1024m -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError"'
+      TERM: dumb
+      ARTIFACTS_DIRECTORY: /home/circleci/android/artifacts
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "build.gradle" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+     # - run: gradle dependencies
+
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+
+      - run:
+          name: Create artifacts directory
+          command: mkdir $ARTIFACTS_DIRECTORY
+
+      # Creating artifacts sup dirs
+      - run:
+          name: Create artifacts sub-directory
+          command: sudo mkdir -p $ARTIFACTS_DIRECTORY/project/
+
+      - run:
+          name: module_a tests
+          command: ./gradlew -x lint module_a:jacocoTestReport -PdisablePreDex
+
+      - run:
+          name: module_a tests
+          command: ./gradlew -x lint module_b:jacocoTestReport -PdisablePreDex
+
+      - run:
+          name: Copying artifacts
+          command: sudo cp -r module_a/build/reports/ $ARTIFACTS_DIRECTORY
+                      && sudo cp -r module_b/build/reports/ $ARTIFACTS_DIRECTORY
+
+      - run:
+          name: Uploading reports to CodeCov
+          command: bash <(curl -s https://codecov.io/bash) -t e526d719-94a0-4d95-aeaf-145a12a06653
+
+      - store_artifacts:
+          path: artifacts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
