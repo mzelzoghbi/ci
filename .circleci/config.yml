@@ -40,6 +40,11 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
+      # Setup codacy
+      - run:
+          name: Setting up codacy
+          command: sudo apt-get install jq && wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets[0].browser_download_url')
+
       - run:
           name: Create artifacts directory
           command: mkdir $ARTIFACTS_DIRECTORY
@@ -54,8 +59,16 @@ jobs:
           command: ./gradlew -x lint module_a:jacocoTestReport -PdisablePreDex
 
       - run:
+          name : Uploading to codacy
+          command: java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r module_a/build/reports/jacoco/jacocoTestDebugUnitTestReport/jacocoTestDebugUnitTestReport.xml
+
+      - run:
           name: module_a tests
           command: ./gradlew -x lint module_b:jacocoTestReport -PdisablePreDex
+
+      - run:
+          name : Uploading to codacy
+          command: java -jar ~/codacy-coverage-reporter-assembly-latest.jar report -l Java -r module_b/build/reports/jacoco/jacocoTestDebugUnitTestReport/jacocoTestDebugUnitTestReport.xml
 
       - run:
           name: Copying artifacts
